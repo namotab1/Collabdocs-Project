@@ -14,9 +14,11 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class WorkspaceSerializer(serializers.ModelSerializer):
+    member_count = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = Workspace
-        fields = ['id', 'name', 'owner', 'is_active', 'created_at']
+        fields = ['id', 'name', 'owner', 'is_active', 'created_at', 'member_count']
 
 
 class WorkspaceMemberSerializer(serializers.ModelSerializer):

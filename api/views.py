@@ -24,7 +24,9 @@ class WorkspaceViewSet(viewsets.ModelViewSet):
     serializer_class = WorkspaceSerializer
 
     def get_queryset(self):
-        return Workspace.objects.select_related('owner')
+        return Workspace.objects.select_related('owner').annotate(
+            member_count=Count('members', distinct=True)
+    )
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -145,16 +147,17 @@ class DocumentViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=['get'])
     def stats(self, request, pk=None):
         document = self.get_object()
-        version_count = document.versions.count()
-        comment_count = document.comments.count()
-        contributor_ids = document.versions.values_list('saved_by', flat=True).distinct()
+
+        version_agg = document.versions.aggregate(version_count=Count('id'))
+        comment_agg = document.comments.aggregate(comment_count=Count('id'))
+        contributor_count = document.versions.values('saved_by').distinct().count()
 
         return Response({
             'document_id': str(document.id),
-            'version_count': version_count,
-            'comment_count': comment_count,
-            'contributor_count': len(set(contributor_ids)),
-        })
+            'version_count': version_agg['version_count'],
+            'comment_count': comment_agg['comment_count'],
+            'contributor_count': contributor_count,
+    })
 
     @action(detail=True, methods=['post'])
     def tags(self, request, pk=None):
